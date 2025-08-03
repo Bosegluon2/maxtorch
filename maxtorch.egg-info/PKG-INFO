@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: maxtorch
+Version: 0.1.0
+Summary: High-level PyTorch modules: ResidualBlock, UNet, etc.
+Author: Your Name
+Requires-Python: >=3.8
+Requires-Dist: torch>=2.4.0
+Dynamic: author
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
