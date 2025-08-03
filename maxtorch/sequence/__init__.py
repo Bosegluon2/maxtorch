@@ -1,2 +1,2 @@
-# 序列建模相关高阶模块 
+# high-level sequence modules
 from .blocks import TransformerEncoderBlock, TransformerDecoderBlock, LSTMBlock, GRUBlock 

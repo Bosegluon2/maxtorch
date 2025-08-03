@@ -1,2 +1,2 @@
-# 注意力机制相关高阶模块 
+# high-level attention modules
 from .blocks import SqueezeExcitationBlock, CBAMBlock, SelfAttention2d, NonLocalBlock, ECABlock, GCBlock, CoordinateAttention, PerformerBlock
