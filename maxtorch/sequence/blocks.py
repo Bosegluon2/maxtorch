@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class TransformerEncoderBlock(nn.Module):
     """
     Transformer Encoder Block
@@ -22,14 +23,17 @@ class TransformerEncoderBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, N, embed_dim)
     """
+
     def __init__(self, embed_dim, num_heads, ff_dim, dropout=0.1):
         super().__init__()
-        self.self_attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim, num_heads, dropout=dropout, batch_first=True
+        )
         self.norm1 = nn.LayerNorm(embed_dim)
         self.ff = nn.Sequential(
             nn.Linear(embed_dim, ff_dim),
             nn.ReLU(inplace=True),
-            nn.Linear(ff_dim, embed_dim)
+            nn.Linear(ff_dim, embed_dim),
         )
         self.norm2 = nn.LayerNorm(embed_dim)
         self.dropout = nn.Dropout(dropout)
@@ -40,7 +44,7 @@ class TransformerEncoderBlock(nn.Module):
         x = self.norm1(x + self.dropout(attn_output))
         ff_output = self.ff(x)
         x = self.norm2(x + self.dropout(ff_output))
-        return x 
+        return x
 
 
 class TransformerDecoderBlock(nn.Module):
@@ -66,16 +70,21 @@ class TransformerDecoderBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, N, embed_dim)
     """
+
     def __init__(self, embed_dim, num_heads, ff_dim, dropout=0.1):
         super().__init__()
-        self.self_attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
+        self.self_attn = nn.MultiheadAttention(
+            embed_dim, num_heads, dropout=dropout, batch_first=True
+        )
         self.norm1 = nn.LayerNorm(embed_dim)
-        self.cross_attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim, num_heads, dropout=dropout, batch_first=True
+        )
         self.norm2 = nn.LayerNorm(embed_dim)
         self.ff = nn.Sequential(
             nn.Linear(embed_dim, ff_dim),
             nn.ReLU(inplace=True),
-            nn.Linear(ff_dim, embed_dim)
+            nn.Linear(ff_dim, embed_dim),
         )
         self.norm3 = nn.LayerNorm(embed_dim)
         self.dropout = nn.Dropout(dropout)
@@ -88,7 +97,7 @@ class TransformerDecoderBlock(nn.Module):
         x = self.norm2(x + self.dropout(cross_output))
         ff_output = self.ff(x)
         x = self.norm3(x + self.dropout(ff_output))
-        return x 
+        return x
 
 
 class LSTMBlock(nn.Module):
@@ -115,7 +124,16 @@ class LSTMBlock(nn.Module):
         out (Tensor): Output features (B, T, hidden_size * num_directions)
         (h_n, c_n) (tuple): Final hidden and cell states
     """
-    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, bidirectional=False, dropout=0.0):
+
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        num_layers=1,
+        batch_first=True,
+        bidirectional=False,
+        dropout=0.0,
+    ):
         super().__init__()
         self.lstm = nn.LSTM(
             input_size=input_size,
@@ -123,13 +141,13 @@ class LSTMBlock(nn.Module):
             num_layers=num_layers,
             batch_first=batch_first,
             bidirectional=bidirectional,
-            dropout=dropout if num_layers > 1 else 0.0
+            dropout=dropout if num_layers > 1 else 0.0,
         )
 
     def forward(self, x, hx=None):
         # x: (B, T, C) if batch_first else (T, B, C)
         out, (h_n, c_n) = self.lstm(x, hx) if hx is not None else self.lstm(x)
-        return out, (h_n, c_n) 
+        return out, (h_n, c_n)
 
 
 class GRUBlock(nn.Module):
@@ -156,7 +174,16 @@ class GRUBlock(nn.Module):
         out (Tensor): Output features (B, T, hidden_size * num_directions)
         h_n (Tensor): Final hidden state
     """
-    def __init__(self, input_size, hidden_size, num_layers=1, batch_first=True, bidirectional=False, dropout=0.0):
+
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        num_layers=1,
+        batch_first=True,
+        bidirectional=False,
+        dropout=0.0,
+    ):
         super().__init__()
         self.gru = nn.GRU(
             input_size=input_size,
@@ -164,10 +191,10 @@ class GRUBlock(nn.Module):
             num_layers=num_layers,
             batch_first=batch_first,
             bidirectional=bidirectional,
-            dropout=dropout if num_layers > 1 else 0.0
+            dropout=dropout if num_layers > 1 else 0.0,
         )
 
     def forward(self, x, hx=None):
         # x: (B, T, C) if batch_first else (T, B, C)
         out, h_n = self.gru(x, hx) if hx is not None else self.gru(x)
-        return out, h_n 
+        return out, h_n

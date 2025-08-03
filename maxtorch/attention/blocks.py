@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class SqueezeExcitationBlock(nn.Module):
     """
     Squeeze-and-Excitation Block (SE Block)
@@ -19,6 +20,7 @@ class SqueezeExcitationBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, channels, reduction=16):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
@@ -26,14 +28,14 @@ class SqueezeExcitationBlock(nn.Module):
             nn.Linear(channels, channels // reduction, bias=False),
             nn.ReLU(inplace=True),
             nn.Linear(channels // reduction, channels, bias=False),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
         b, c, _, _ = x.size()
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
-        return x * y 
+        return x * y
 
 
 class CBAMBlock(nn.Module):
@@ -55,6 +57,7 @@ class CBAMBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, channels, reduction=16, kernel_size=7):
         super().__init__()
         # 通道注意力
@@ -63,11 +66,13 @@ class CBAMBlock(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(channels, channels // reduction, bias=False),
             nn.ReLU(inplace=True),
-            nn.Linear(channels // reduction, channels, bias=False)
+            nn.Linear(channels // reduction, channels, bias=False),
         )
         self.sigmoid_channel = nn.Sigmoid()
         # 空间注意力
-        self.conv_spatial = nn.Conv2d(2, 1, kernel_size=kernel_size, padding=kernel_size // 2, bias=False)
+        self.conv_spatial = nn.Conv2d(
+            2, 1, kernel_size=kernel_size, padding=kernel_size // 2, bias=False
+        )
         self.sigmoid_spatial = nn.Sigmoid()
 
     def forward(self, x):
@@ -85,7 +90,7 @@ class CBAMBlock(nn.Module):
         spatial_att = self.conv_spatial(spatial_att)
         spatial_att = self.sigmoid_spatial(spatial_att)
         out = x * spatial_att
-        return out 
+        return out
 
 
 class SelfAttention2d(nn.Module):
@@ -105,6 +110,7 @@ class SelfAttention2d(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, in_channels):
         super().__init__()
         self.query_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
@@ -115,7 +121,9 @@ class SelfAttention2d(nn.Module):
 
     def forward(self, x):
         batch, C, H, W = x.size()
-        proj_query = self.query_conv(x).view(batch, -1, H * W).permute(0, 2, 1)  # (B, N, C//8)
+        proj_query = (
+            self.query_conv(x).view(batch, -1, H * W).permute(0, 2, 1)
+        )  # (B, N, C//8)
         proj_key = self.key_conv(x).view(batch, -1, H * W)  # (B, C//8, N)
         energy = torch.bmm(proj_query, proj_key)  # (B, N, N)
         attention = self.softmax(energy)
@@ -123,7 +131,7 @@ class SelfAttention2d(nn.Module):
         out = torch.bmm(proj_value, attention.permute(0, 2, 1))  # (B, C, N)
         out = out.view(batch, C, H, W)
         out = self.gamma * out + x
-        return out 
+        return out
 
 
 class NonLocalBlock(nn.Module):
@@ -143,6 +151,7 @@ class NonLocalBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, in_channels):
         super().__init__()
         self.in_channels = in_channels
@@ -168,7 +177,7 @@ class NonLocalBlock(nn.Module):
         y = y.permute(0, 2, 1).contiguous().view(batch, self.inter_channels, H, W)
         W_y = self.W(y)
         z = W_y + x
-        return z 
+        return z
 
 
 class ECABlock(nn.Module):
@@ -189,10 +198,13 @@ class ECABlock(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, channels, k_size=3):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size-1)//2, bias=False)
+        self.conv = nn.Conv1d(
+            1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False
+        )
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -200,7 +212,7 @@ class ECABlock(nn.Module):
         y = self.avg_pool(x).view(b, 1, c)  # (B, 1, C)
         y = self.conv(y)
         y = self.sigmoid(y).view(b, c, 1, 1)
-        return x * y 
+        return x * y
 
 
 class GCBlock(nn.Module):
@@ -223,36 +235,47 @@ class GCBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
-    def __init__(self, in_channels, ratio=16, pooling_type='att', fusion_types=('channel_add',)):
+
+    def __init__(
+        self, in_channels, ratio=16, pooling_type="att", fusion_types=("channel_add",)
+    ):
         super().__init__()
-        assert pooling_type in ['att', 'avg']
-        assert all([f in ['channel_add', 'channel_mul'] for f in fusion_types])
+        assert pooling_type in ["att", "avg"]
+        assert all([f in ["channel_add", "channel_mul"] for f in fusion_types])
         self.in_channels = in_channels
         self.ratio = ratio
         self.pooling_type = pooling_type
         self.fusion_types = fusion_types
-        if pooling_type == 'att':
+        if pooling_type == "att":
             self.conv_mask = nn.Conv2d(in_channels, 1, kernel_size=1)
             self.softmax = nn.Softmax(dim=2)
         else:
             self.avg_pool = nn.AdaptiveAvgPool2d(1)
         hidden_channels = max(1, in_channels // ratio)
-        self.channel_add_conv = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_channels, kernel_size=1),
-            nn.LayerNorm([hidden_channels, 1, 1]),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, in_channels, kernel_size=1)
-        ) if 'channel_add' in fusion_types else None
-        self.channel_mul_conv = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_channels, kernel_size=1),
-            nn.LayerNorm([hidden_channels, 1, 1]),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, in_channels, kernel_size=1)
-        ) if 'channel_mul' in fusion_types else None
+        self.channel_add_conv = (
+            nn.Sequential(
+                nn.Conv2d(in_channels, hidden_channels, kernel_size=1),
+                nn.LayerNorm([hidden_channels, 1, 1]),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(hidden_channels, in_channels, kernel_size=1),
+            )
+            if "channel_add" in fusion_types
+            else None
+        )
+        self.channel_mul_conv = (
+            nn.Sequential(
+                nn.Conv2d(in_channels, hidden_channels, kernel_size=1),
+                nn.LayerNorm([hidden_channels, 1, 1]),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(hidden_channels, in_channels, kernel_size=1),
+            )
+            if "channel_mul" in fusion_types
+            else None
+        )
 
     def spatial_pool(self, x):
         b, c, h, w = x.size()
-        if self.pooling_type == 'att':
+        if self.pooling_type == "att":
             input_x = x.view(b, c, h * w)
             context_mask = self.conv_mask(x)
             context_mask = context_mask.view(b, 1, h * w)
@@ -273,7 +296,7 @@ class GCBlock(nn.Module):
         if self.channel_add_conv is not None:
             channel_add_term = self.channel_add_conv(context)
             out = out + channel_add_term
-        return out 
+        return out
 
 
 class CoordinateAttention(nn.Module):
@@ -294,16 +317,23 @@ class CoordinateAttention(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, in_channels, reduction=32):
         super().__init__()
         self.pool_h = nn.AdaptiveAvgPool2d((None, 1))
         self.pool_w = nn.AdaptiveAvgPool2d((1, None))
         mid_channels = max(8, in_channels // reduction)
-        self.conv1 = nn.Conv2d(in_channels, mid_channels, kernel_size=1, stride=1, padding=0)
+        self.conv1 = nn.Conv2d(
+            in_channels, mid_channels, kernel_size=1, stride=1, padding=0
+        )
         self.bn1 = nn.BatchNorm2d(mid_channels)
         self.act = nn.ReLU(inplace=True)
-        self.conv_h = nn.Conv2d(mid_channels, in_channels, kernel_size=1, stride=1, padding=0)
-        self.conv_w = nn.Conv2d(mid_channels, in_channels, kernel_size=1, stride=1, padding=0)
+        self.conv_h = nn.Conv2d(
+            mid_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
+        self.conv_w = nn.Conv2d(
+            mid_channels, in_channels, kernel_size=1, stride=1, padding=0
+        )
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -320,7 +350,7 @@ class CoordinateAttention(nn.Module):
         a_h = self.sigmoid(self.conv_h(x_h))
         a_w = self.sigmoid(self.conv_w(x_w))
         out = x * a_h * a_w
-        return out 
+        return out
 
 
 class PerformerBlock(nn.Module):
@@ -344,6 +374,7 @@ class PerformerBlock(nn.Module):
     Output:
         out (Tensor): Shape (B, N, dim)
     """
+
     def __init__(self, dim, num_heads, dim_head=None, dropout=0.0, nb_features=256):
         super().__init__()
         self.dim = dim
@@ -361,8 +392,8 @@ class PerformerBlock(nn.Module):
         # x: (B, N, num_heads, dim_head)
         # Returns: (B, N, num_heads, nb_features)
         B, N, H, D = x.shape
-        w = torch.randn(D, self.nb_features, device=x.device) / (D ** 0.5)
-        x_proj = torch.einsum('bnhd,df->bnhf', x, w)
+        w = torch.randn(D, self.nb_features, device=x.device) / (D**0.5)
+        x_proj = torch.einsum("bnhd,df->bnhf", x, w)
         return torch.exp(x_proj)
 
     def forward(self, x):
@@ -372,9 +403,12 @@ class PerformerBlock(nn.Module):
         v = self.to_v(x).view(B, N, self.num_heads, self.dim_head)
         q_prime = self.prm_exp(q)
         k_prime = self.prm_exp(k)
-        D_inv = 1.0 / (torch.einsum('bnhf,bnhf->bnh', q_prime, k_prime.sum(dim=1, keepdim=True)) + 1e-6)
-        context = torch.einsum('bnhf,bnhd->bnhfd', k_prime, v).sum(dim=1)
-        out = torch.einsum('bnhf,bnhfd,bnh->bnhd', q_prime, context, D_inv)
+        D_inv = 1.0 / (
+            torch.einsum("bnhf,bnhf->bnh", q_prime, k_prime.sum(dim=1, keepdim=True))
+            + 1e-6
+        )
+        context = torch.einsum("bnhf,bnhd->bnhfd", k_prime, v).sum(dim=1)
+        out = torch.einsum("bnhf,bnhfd,bnh->bnhd", q_prime, context, D_inv)
         out = out.reshape(B, N, self.num_heads * self.dim_head)
         out = self.proj(self.dropout(out))
-        return out 
+        return out

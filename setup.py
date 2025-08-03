@@ -15,8 +15,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=[
-        "torch>=2.6.0"
-    ],
+    install_requires=["torch>=2.6.0"],
     python_requires=">=3.10",
-) 
+)

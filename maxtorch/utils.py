@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class GroupNorm(nn.Module):
     """
     Group Normalization (GroupNorm)
@@ -21,6 +22,7 @@ class GroupNorm(nn.Module):
     Output:
         out (Tensor): Shape (B, C, ...)
     """
+
     def __init__(self, num_groups, num_channels, eps=1e-5, affine=True):
         super().__init__()
         self.group_norm = nn.GroupNorm(num_groups, num_channels, eps=eps, affine=affine)
@@ -51,7 +53,16 @@ class SwitchableNorm(nn.Module):
     Output:
         out (Tensor): Shape (B, C, ...)
     """
-    def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True, using_moving_average=True, using_bn=True):
+
+    def __init__(
+        self,
+        num_features,
+        eps=1e-5,
+        momentum=0.1,
+        affine=True,
+        using_moving_average=True,
+        using_bn=True,
+    ):
         super().__init__()
         self.num_features = num_features
         self.eps = eps
@@ -66,8 +77,8 @@ class SwitchableNorm(nn.Module):
             self.gamma = nn.Parameter(torch.ones(1, num_features, 1, 1))
             self.beta = nn.Parameter(torch.zeros(1, num_features, 1, 1))
         if using_bn:
-            self.register_buffer('running_mean', torch.zeros(1, num_features, 1, 1))
-            self.register_buffer('running_var', torch.ones(1, num_features, 1, 1))
+            self.register_buffer("running_mean", torch.zeros(1, num_features, 1, 1))
+            self.register_buffer("running_var", torch.ones(1, num_features, 1, 1))
 
     def forward(self, x):
         N, C = x.size(0), x.size(1)
@@ -81,10 +92,18 @@ class SwitchableNorm(nn.Module):
         if self.using_bn:
             if self.training or not self.using_moving_average:
                 mean_bn = x.view(N, C, -1).mean((0, 2), keepdim=True).view(1, C, 1, 1)
-                var_bn = x.view(N, C, -1).var((0, 2), keepdim=True, unbiased=False).view(1, C, 1, 1)
+                var_bn = (
+                    x.view(N, C, -1)
+                    .var((0, 2), keepdim=True, unbiased=False)
+                    .view(1, C, 1, 1)
+                )
                 if self.training:
-                    self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean_bn.detach()
-                    self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var_bn.detach()
+                    self.running_mean = (
+                        1 - self.momentum
+                    ) * self.running_mean + self.momentum * mean_bn.detach()
+                    self.running_var = (
+                        1 - self.momentum
+                    ) * self.running_var + self.momentum * var_bn.detach()
             else:
                 mean_bn = self.running_mean
                 var_bn = self.running_var
@@ -94,7 +113,11 @@ class SwitchableNorm(nn.Module):
         # Softmax weights
         mean_weight = torch.softmax(self.mean_weight, 0)
         var_weight = torch.softmax(self.var_weight, 0)
-        mean = mean_weight[0] * mean_in + mean_weight[1] * mean_ln + mean_weight[2] * mean_bn
+        mean = (
+            mean_weight[0] * mean_in
+            + mean_weight[1] * mean_ln
+            + mean_weight[2] * mean_bn
+        )
         var = var_weight[0] * var_in + var_weight[1] * var_ln + var_weight[2] * var_bn
         out = (x - mean) / (var + self.eps).sqrt()
         if self.affine:
@@ -120,13 +143,14 @@ class DropBlock2D(nn.Module):
     Output:
         out (Tensor): Shape (B, C, H, W)
     """
+
     def __init__(self, block_size, drop_prob):
         super().__init__()
         self.block_size = block_size
         self.drop_prob = drop_prob
 
     def forward(self, x):
-        if not self.training or self.drop_prob == 0.:
+        if not self.training or self.drop_prob == 0.0:
             return x
         gamma = self._compute_gamma(x)
         mask = (torch.rand(x.shape[0], *x.shape[2:], device=x.device) < gamma).float()
@@ -141,11 +165,16 @@ class DropBlock2D(nn.Module):
             input=mask,
             kernel_size=(self.block_size, self.block_size),
             stride=(1, 1),
-            padding=self.block_size // 2
+            padding=self.block_size // 2,
         )
         block_mask = 1 - block_mask
         return block_mask
 
     def _compute_gamma(self, x):
         B, C, H, W = x.shape
-        return self.drop_prob / (self.block_size ** 2) * (H * W) / ((H - self.block_size + 1) * (W - self.block_size + 1))
+        return (
+            self.drop_prob
+            / (self.block_size**2)
+            * (H * W)
+            / ((H - self.block_size + 1) * (W - self.block_size + 1))
+        )
