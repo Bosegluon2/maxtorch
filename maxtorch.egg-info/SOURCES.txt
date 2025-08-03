@@ -1,3 +1,4 @@
+LICENSE
 README.md
 setup.py
 maxtorch/__init__.py
@@ -10,7 +11,9 @@ maxtorch.egg-info/top_level.txt
 maxtorch/attention/__init__.py
 maxtorch/attention/blocks.py
 maxtorch/generative/__init__.py
+maxtorch/generative/blocks.py
 maxtorch/sequence/__init__.py
+maxtorch/sequence/blocks.py
 maxtorch/vision/__init__.py
 maxtorch/vision/blocks.py
 maxtorch/vision/models.py
