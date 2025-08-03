@@ -1,11 +1,4 @@
 # high-level attention modules
-from .blocks import (
-    SqueezeExcitationBlock,
-    CBAMBlock,
-    SelfAttention2d,
-    NonLocalBlock,
-    ECABlock,
-    GCBlock,
-    CoordinateAttention,
-    PerformerBlock,
-)
+from .blocks import (CBAMBlock, CoordinateAttention, ECABlock, GCBlock,
+                     NonLocalBlock, PerformerBlock, SelfAttention2d,
+                     SqueezeExcitationBlock)

@@ -1,21 +1,8 @@
 # high-level vision modules
-from .blocks import (
-    ResidualBlock,
-    BottleneckBlock,
-    DepthwiseSeparableConv,
-    InvertedResidualBlock,
-    DenseBlock,
-    FireModule,
-    VisionTransformerBlock,
-    ResNeXtBlock,
-    GhostModule,
-    SpatialPyramidPooling,
-    ASPPBlock,
-    PANetBlock,
-    BiFPNBlock,
-    BiFPNLayer,
-    PSPModule,
-    SwinTransformerBlock,
-    ConvNeXtBlock,
-)
-from .models import UNet, UNetPlusPlus, DeepLabV3PlusBlock, FPNBlock
+from .blocks import (ASPPBlock, BiFPNBlock, BiFPNLayer, BottleneckBlock,
+                     ConvNeXtBlock, DenseBlock, DepthwiseSeparableConv,
+                     FireModule, GhostModule, InvertedResidualBlock,
+                     PANetBlock, PSPModule, ResidualBlock, ResNeXtBlock,
+                     SpatialPyramidPooling, SwinTransformerBlock,
+                     VisionTransformerBlock)
+from .models import DeepLabV3PlusBlock, FPNBlock, UNet, UNetPlusPlus

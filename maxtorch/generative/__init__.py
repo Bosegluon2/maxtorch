@@ -1,12 +1,4 @@
 # high-level generative modules
-from .blocks import (
-    PixelShuffleBlock,
-    GANDiscriminatorBlock,
-    GANGeneratorBlock,
-    VAEEncoderBlock,
-    VAEDecoderBlock,
-    UNet1D,
-    UNet3D,
-    DiffusionBlock,
-    StyleGANBlock,
-)
+from .blocks import (DiffusionBlock, GANDiscriminatorBlock, GANGeneratorBlock,
+                     PixelShuffleBlock, StyleGANBlock, UNet1D, UNet3D,
+                     VAEDecoderBlock, VAEEncoderBlock)
